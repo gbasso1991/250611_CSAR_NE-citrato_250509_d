@@ -48,19 +48,18 @@ ax.plot(t_FF3_0,T_FF3,label='FF3')
 ax.plot(t_FF4_0,T_FF4,label='FF4')
 ax.grid()
 ax.set_xlim(0,)
-#%% voy 1 por 1
-
+#%% Agua y Teq
 # Obtener máscara booleana donde t_agua_0 >= 1000
 mask = t_agua_0 >= 1000
 
 # Filtrar T_agua usando la máscara y calcular la media
 T_agua_eq = round(np.mean(T_agua[mask]),1)
 
-print(f"Temperatura media del agua desde t=1000 s: {T_agua_eq:.2f} °C")
+print(f"Temperatura media del agua desde t=1000 s: {T_agua_eq} °C")
 
 fig, ax=plt.subplots(figsize=(8,4),constrained_layout=True)
 ax.plot(t_agua_0,T_agua,label='Agua')
-ax.axhline(T_agua_eq,0,1,c='tab:red',ls='--',label='T$_{eq}$ = '+f'{T_agua_mean:.1f} °C')
+ax.axhline(T_agua_eq,0,1,c='tab:red',ls='--',label='T$_{eq}$ = '+f'{T_agua_eq:.1f} °C')
 ax.grid()
 ax.set_xlim(0,t_agua_0[-1])
 ax.legend()
@@ -84,3 +83,84 @@ ax.legend()
 ax.set_xlabel('t (s)')
 ax.set_ylabel('T (°C)')
 plt.show()
+# %%
+#%% Función de ajustes alrededor de Teq
+def ajustes_alrededor_Teq(Teq, t, T, x=1.0):
+    """
+    Realiza ajustes lineal y exponencial alrededor de Teq ± x.
+    
+    Args:
+        Teq (float): Temperatura de equilibrio
+        t (np.array): Array de tiempos
+        T (np.array): Array de temperaturas
+        x (float): Rango alrededor de Teq (default=1.0)
+    """
+    # Crear máscara para el intervalo de interés
+    mask = (T >= Teq - x) & (T <= Teq + x)
+    t_interval = t[mask]
+    T_interval = T[mask]
+    
+    # Ajuste lineal
+    coeff_lin = np.polyfit(t_interval, T_interval, 1)
+    poly_lin = np.poly1d(coeff_lin)
+    r2_lin = np.corrcoef(T_interval, poly_lin(t_interval))[0,1]**2
+    
+    # Ajuste exponencial (T = a + b*exp(-c*t))
+    try:
+        from scipy.optimize import curve_fit
+        def exp_func(t, a, b, c):
+            return a + b * np.exp(-c * t)
+        
+        # Estimación inicial para mejor convergencia
+        p0 = [Teq, x, 1/(t_interval[-1] - t_interval[0])]
+        popt, pcov = curve_fit(exp_func, t_interval, T_interval, p0=p0)
+        a_exp, b_exp, c_exp = popt
+        r2_exp = np.corrcoef(T_interval, exp_func(t_interval, *popt))[0,1]**2
+        exp_success = True
+        
+    except Exception as e:
+        print(f"Error en ajuste exponencial: {e}")
+        exp_success = False
+    
+    # Crear figura
+    fig, ax = plt.subplots(figsize=(8,6), constrained_layout=True)
+    ax.plot(t, T, '.-',label='Datos originales')
+    #ax.plot(t_interval, T_interval, 'o', label=f'Datos en T_eq ± {x}°C')
+    
+    # Plotear ajustes
+    t_fine = np.linspace(t_interval.min()-50, t_interval.max()+50, 100)
+    ax.plot(t_fine, poly_lin(t_fine), '-', 
+            label=f'Ajuste lineal: {coeff_lin[0]:.3f}t + {coeff_lin[1]:.3f} (R²={r2_lin:.3f})')
+    
+    if exp_success:
+        ax.plot(t_fine, exp_func(t_fine, *popt), ':',
+                label=f'Ajuste exp: {a_exp:.3f} + {b_exp:.3f}exp(-{c_exp:.3f}t) (R²={r2_exp:.3f})')
+    
+    # ax.axhline(Teq, color='r', linestyle='--', label=f'T_eq = {Teq}°C')
+    
+    ax.axhspan(Teq-x, Teq+x,0,1,color='tab:red',alpha=0.5,label='$\Delta T$= $\pm$1 ºC')
+    ax.set_xlabel('t (s)')
+    ax.set_ylabel('T (°C)')
+    ax.grid()
+    ax.legend()
+    ax.set_xlim(400,600)
+    ax.set_ylim(T_interval[0]-3,T_interval[-1]+3)
+    plt.show()
+    
+    # Imprimir resultados
+    print("\nResultados del ajuste lineal:")
+    print(f"Pendiente: {coeff_lin[0]:.5f} °C/s")
+    print(f"Ordenada: {coeff_lin[1]:.5f} °C")
+    print(f"Coeficiente R²: {r2_lin:.5f}")
+    
+    if exp_success:
+        print("\nResultados del ajuste exponencial:")
+        print(f"T_inf: {a_exp:.5f} °C")
+        print(f"Amplitud: {b_exp:.5f} °C")
+        print(f"Tasa decaimiento: {c_exp:.5f} 1/s")
+        print(f"Tau: {1/c_exp:.5f} s")
+        print(f"Coeficiente R²: {r2_exp:.5f}")
+
+# Aplicar la función a tus datos
+ajustes_alrededor_Teq(T_agua_eq, t_FF1_0, T_FF1, x=1.0)
+# %%
