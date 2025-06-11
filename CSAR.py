@@ -50,35 +50,37 @@ ax.grid()
 ax.set_xlim(0,)
 #%% voy 1 por 1
 
+# Obtener máscara booleana donde t_agua_0 >= 1000
+mask = t_agua_0 >= 1000
 
-# %%
-# Calcular las derivadas numéricas dT/dt para cada conjunto de datos
-dTdt_agua = np.gradient(T_agua)
-dTdt_FF1 = np.gradient(T_FF1)
-dTdt_FF2 = np.gradient(T_FF2)
-dTdt_FF3 = np.gradient(T_FF3)
-dTdt_FF4 = np.gradient(T_FF4)
+# Filtrar T_agua usando la máscara y calcular la media
+T_agua_eq = round(np.mean(T_agua[mask]),1)
 
-# Crear figura para los plots de derivadas
-plt.figure(figsize=(10, 6))
+print(f"Temperatura media del agua desde t=1000 s: {T_agua_eq:.2f} °C")
 
-# Plotear todas las derivadas
-plt.plot(t_agua_0, dTdt_agua, label='Agua')
-plt.plot(t_FF1_0, dTdt_FF1, label='FF1')
-plt.plot(t_FF2_0, dTdt_FF2, label='FF2')
-plt.plot(t_FF3_0, dTdt_FF3, label='FF3')
-plt.plot(t_FF4_0, dTdt_FF4, label='FF4')
-
-# Añadir elementos gráficos
-plt.title('Derivadas dT/dt de las series temporales')
-plt.xlabel('Tiempo (s)')
-plt.ylabel('dT/dt (°C/s)')
-plt.grid(True, linestyle='--', alpha=0.7)
-plt.legend()
-plt.tight_layout()
-
-# Mostrar el plot
+fig, ax=plt.subplots(figsize=(8,4),constrained_layout=True)
+ax.plot(t_agua_0,T_agua,label='Agua')
+ax.axhline(T_agua_eq,0,1,c='tab:red',ls='--',label='T$_{eq}$ = '+f'{T_agua_mean:.1f} °C')
+ax.grid()
+ax.set_xlim(0,t_agua_0[-1])
+ax.legend()
+ax.set_xlabel('t (s)')
+ax.set_ylabel('T (°C)')
 plt.show()
-
-
+#%% Busco indices donde T cruza la Teq en c/caso
+t_cruce_FF1 = np.nonzero(T_FF1==T_agua_eq)[0]
+t_cruce_FF2 = np.nonzero(T_FF2==T_agua_eq)[0]
+t_cruce_FF3 = np.nonzero(T_FF3==T_agua_eq)[0]
+t_cruce_FF4 = np.nonzero(T_FF4==T_agua_eq)[0]
 # %%
+fig, ax=plt.subplots(figsize=(8,4),constrained_layout=True)
+ax.plot(t_FF1_0,T_FF1,label='FF1')
+ax.scatter(t_FF1_0[t_cruce_FF1],T_FF1[t_cruce_FF1],label='FF1')
+# ax.axhline(T_agua_eq,0,1,c='tab:red',ls='--',label='T$_{eq}$ = '+f'{T_agua_mean:.1f} °C')
+ax.set_xlim(0,t_FF1_0[-1])
+
+ax.grid()
+ax.legend()
+ax.set_xlabel('t (s)')
+ax.set_ylabel('T (°C)')
+plt.show()
