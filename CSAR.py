@@ -230,6 +230,7 @@ ax.grid()
 ax.legend(ncols=2,loc='lower right')
 ax.set_xlabel('t (s)')
 ax.set_ylabel('T (°C)')
+plt.savefig('AL_y_pendientes.png',facecolor='w',dpi=400)
 plt.show()
 
 # %%
