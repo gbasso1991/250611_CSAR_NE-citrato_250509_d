@@ -226,7 +226,7 @@ ax.text(0.1,0.85,f'<m> = {dTdt_lineal:.3f} ºC/s',bbox=dict(alpha=0.7),fontsize=
 ax.set_xlim(160,420)
 ax.set_ylim(18,30)
 ax.grid()
-ax.legend(ncols=2,loc='lower right')
+ax.legend(ncol=2,loc='lower right')
 ax.set_xlabel('t (s)')
 ax.set_ylabel('T (°C)')
 plt.savefig('AL_y_pendientes.png',facecolor='w',dpi=400)
@@ -265,7 +265,7 @@ def ajExp_alrededor_Teq(Teq, t, T, x=3.0):
         
         r2_exp = np.corrcoef(T_interval, exp_func(t_interval, *popt))[0,1]**2
         exp_success = True
-        
+
     except Exception as e:
         print(f"Error en ajuste exponencial: {e}")
         exp_success = False
