@@ -5,7 +5,7 @@ from datetime import datetime
 from glob import glob
 from scipy.optimize import curve_fit
 from uncertainties import ufloat, unumpy
-
+import os
 #%%
 class SensorCSV:
     def __init__(self, filepath):
@@ -24,10 +24,11 @@ class SensorCSV:
         return np.array([(t - timestamps[0]).total_seconds() for t in timestamps])
 
 class AnalisisTermico:
-    def __init__(self, path='.', delta_lineal=1.0, delta_exp=3.0, t_eq_min=1000):
+    def __init__(self, path='.', delta_lineal=1.0, delta_exp=3.0, t_eq_min=1000,concentracion=(10.0,0.1)):
         self.delta_lineal = delta_lineal
         self.delta_exp = delta_exp
         self.t_eq_min = t_eq_min
+        self.concentracion=ufloat(concentracion[0],concentracion[1])
         self.files = glob(f'{path}/*.csv')
         self.sensores = [SensorCSV(f) for f in self.files]
         self.T_eq = None
@@ -116,7 +117,7 @@ class AnalisisTermico:
             t_alineado = np.array([(ti - t_base).total_seconds() for ti in muestra.timestamp])
             t_pos, T_pos = t_alineado[t_alineado >= 0], muestra.T_CH1[t_alineado >= 0]
 
-            self.muestras_procesadas.append((muestra.filename, t_pos, T_pos))
+            self.muestras_procesadas.append((os.path.split(muestra.filename), t_pos, T_pos))
 
             res_lin = self.ajuste_lineal(t_pos, T_pos)
             self.resultados_lineales.append(res_lin)
@@ -190,11 +191,19 @@ class AnalisisTermico:
         plt.show()
 
         # Prints finales
-        print(f'\nPromedio dTdt lineal = {prom_lineal:.4f} ºC/s')
-        print(f'Promedio dTdt exponencial = {prom_exponencial:.4f} ºC/s')
+        print('-'*50)
+        print(f'Concentracion {self.concentracion} g/L\nCap. calorifica volumetrica = 4.186 kJ/ºC/L\n')
+        print(f'<dTdt> lineal = {prom_lineal:.4f} ºC/s')
+        CSAR_lineal = prom_lineal*4.186e3/self.concentracion
+        print(f'CSAR = {CSAR_lineal:.0f} W/g (ajuste lineal)')
+
+        print(f'\n<dTdt> exponencial = {prom_exponencial:.4f} ºC/s')
+        CSAR_exp = prom_exponencial*4.186e3/self.concentracion
+        print(f'CSAR = {CSAR_exp:.0f} W/g (ajuste exponencial)')
+        print('-'*50)
 
 if __name__ == '__main__':
-    at = AnalisisTermico(path='data', delta_lineal=1.0, delta_exp=3.0, t_eq_min=1000)
+    at = AnalisisTermico(path='data', delta_lineal=1.0, delta_exp=3.0, t_eq_min=1000,concentracion=(4.5,0.4))
     at.analizar()
 
 # %%
